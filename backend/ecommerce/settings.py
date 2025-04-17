@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'core',
     'products',
     'orders',
+    'cart',
     # Terceros
     'rest_framework',
     'rest_framework_simplejwt',
