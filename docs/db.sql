@@ -1,0 +1,2 @@
+-- Script SQL de referencia (puedes exportar desde Django luego)
+-- Este archivo debe contener la estructura de las tablas principales: users, products, categories, orders, order_items, etc.
