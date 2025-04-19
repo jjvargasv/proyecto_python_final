@@ -1,2 +1,14 @@
-Nombre: [Agrega tu nombre]
-Correo: [Agrega tu correo]
+Nombre: [jhon jairo vargas vargas] 
+Correo: [jhonjairovargas@gmail.com]
+CC: 80767586	
+github : [jjvargasv](https://github.com/jjvargasv)
+
+Nombre: [Tania Ximena Montes Morales]
+Correo: [taniamm768@gmail.com]
+CC: 1007379286
+github : [taniaax](https://github.com/taniaax)
+
+Nombre: [Rafael Junior Gomez Cordoba]
+Correo: []
+CC: 1013296 
+github : [](https://github.com/)
