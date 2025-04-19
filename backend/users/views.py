@@ -3,7 +3,8 @@ from django.contrib.auth.models import User
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .serializers import UserSerializer, RegisterSerializer
+from .serializers import UserSerializer, RegisterSerializer, PerfilSerializer
+from .models import Perfil
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -16,7 +17,19 @@ class UserDetailView(generics.RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
-        return self.request.user
+        user = self.request.user
+        # Siempre obtener o crear el perfil
+        Perfil.objects.get_or_create(user=user, defaults={"nombre_completo": user.get_full_name() or user.username})
+        return user
+
+class PerfilDetailUpdateView(generics.RetrieveUpdateAPIView):
+    serializer_class = PerfilSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        user = self.request.user
+        perfil, creado = Perfil.objects.get_or_create(user=user, defaults={"nombre_completo": user.get_full_name() or user.username})
+        return perfil
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod

@@ -1,0 +1,1 @@
+# Archivo deshabilitado: vistas de reseñas eliminadas

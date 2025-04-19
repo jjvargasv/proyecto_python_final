@@ -1,0 +1,1 @@
+# Archivo deshabilitado: serializer de reseñas eliminado

@@ -1,0 +1,1 @@
+# Archivo deshabilitado: permisos de reseñas eliminados

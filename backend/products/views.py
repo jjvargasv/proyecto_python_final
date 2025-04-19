@@ -13,9 +13,21 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         return request.user and request.user.is_staff
 
 class ProductListCreateView(generics.ListCreateAPIView):
-    queryset = Product.objects.all().order_by('-created_at')
     serializer_class = ProductSerializer
     permission_classes = [IsAdminOrReadOnly]
+
+    def get_queryset(self):
+        queryset = Product.objects.all().order_by('-created_at')
+        featured = self.request.query_params.get('featured')
+        category = self.request.query_params.get('category')
+        if featured is not None:
+            if featured.lower() in ['true', '1', 'yes']:
+                queryset = queryset.filter(featured=True)
+            elif featured.lower() in ['false', '0', 'no']:
+                queryset = queryset.filter(featured=False)
+        if category is not None:
+            queryset = queryset.filter(category_id=category)
+        return queryset
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Product.objects.all()

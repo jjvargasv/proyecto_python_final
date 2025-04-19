@@ -42,6 +42,10 @@ INSTALLED_APPS = [
     'products',
     'orders',
     'cart',
+    'users',
+    'contacto',
+    'boletin',
+    'reseñas',
     # Terceros
     'rest_framework',
     'rest_framework_simplejwt',
@@ -59,6 +63,16 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# --- CORS CONFIGURACIÓN SEGURA PARA DESARROLLO ---
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    # Si usas otra IP o puerto, agrégala aquí
+    # "http://127.0.0.1:3000",
+]
+# NO uses CORS_ALLOW_ALL_ORIGINS con credenciales
+# CORS_ALLOW_ALL_ORIGINS = False
 
 ROOT_URLCONF = 'ecommerce.urls'
 
@@ -147,9 +161,6 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
-
-# CORS settings
-CORS_ALLOW_ALL_ORIGINS = True
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
