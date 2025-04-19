@@ -9,6 +9,6 @@ CC: 1007379286
 github : [taniaax](https://github.com/taniaax)
 
 Nombre: [Rafael Junior Gomez Cordoba]
-Correo: []
+Correo: [ jrrafael194@gmail.com ]
 CC: 1013296 
-github : [](https://github.com/)
+github : [jrrafael194](https://github.com/jrrafael194)
