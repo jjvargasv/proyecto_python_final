@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { fetchCarrito, addToCarrito, removeFromCarrito, updateCarritoItem } from "../api";
+import {
+  fetchCarrito,
+  agregarAlCarritoAPI,
+  eliminarDelCarritoAPI,
+  actualizarCantidadCarritoAPI
+} from "../utils/api";
 
 const CarritoContext = createContext();
 
@@ -27,126 +32,100 @@ export function CarritoProvider({ children }) {
   const [error, setError] = useState(null);
   const [alertaGlobal, setAlertaGlobal] = useState(null);
 
-  // Obtén el token JWT (ajusta según tu sistema de login)
   function getToken() {
     return localStorage.getItem("token");
   }
 
-  // Cargar carrito al iniciar (backend si logueado, localStorage si no)
-  useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      const local = getLocalCart();
-      setCarrito(local);
-      setLoading(false);
-      return;
+  React.useEffect(() => {
+    function handleStorageChange(e) {
+      if (e.key === "token") {
+        recargarCarrito();
+      }
     }
-    fetchCarrito(token)
-      .then((data) => {
-        setCarrito(
-          (data.items || []).map((item) => ({
-            id: item.product.id,
-            nombre: item.product.nombre || item.product.name,
-            descripcion: item.product.descripcion || item.product.description,
-            precio: item.product.precio || item.product.price,
-            imagen: item.product.image_url || item.product.imagen || item.product.image,
-            cantidad: item.quantity,
-            item_id: item.id,
-          }))
-        );
-        setLoading(false);
-      })
-      .catch((e) => {
-        if (e.message.includes('401')) {
-          setAlertaGlobal({ tipo: 'info', mensaje: 'Sesión no iniciada. Usando carrito local.' });
-          setCarrito(getLocalCart());
-          setLoading(false);
-        } else {
-          setError(e.message);
-          setLoading(false);
-        }
-      });
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  // --- FUSIÓN AUTOMÁTICA DEL CARRITO LOCAL AL LOGIN ---
+  // Cargar carrito al iniciar (backend si logueado, localStorage si no)
   useEffect(() => {
-    const token = getToken();
-    if (!token) return;
-    const local = getLocalCart();
-    if (local.length === 0) return;
-    setLoading(true);
-    Promise.all(
-      local.map((prod) => addToCarrito(prod.id, prod.cantidad, token))
-    )
-      .then(async () => {
-        localStorage.removeItem("carrito");
-        await recargarCarrito();
-        setAlertaGlobal({ tipo: 'info', mensaje: 'Carrito de invitado fusionado con tu cuenta.' });
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-    // eslint-disable-next-line
-  }, [localStorage.getItem("token")]);
-
-  // Refrescar carrito automáticamente cuando cambia el token (login/logout)
-  useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      setCarrito(getLocalCart());
-      setAlertaGlobal({ tipo: 'info', mensaje: 'Sesión cerrada. Usando carrito local.' });
-      return;
-    }
     recargarCarrito();
-    // eslint-disable-next-line
-  }, [localStorage.getItem("token")]);
+  }, []);
 
-  // Forzar recarga del carrito al agregar/quitar (sin refrescar página)
   async function recargarCarrito() {
     const token = getToken();
     if (!token) {
       setCarrito(getLocalCart());
+      setLoading(false);
       return;
     }
+    setLoading(true);
     try {
-      const data = await fetchCarrito(token);
+      const data = await fetchCarrito();
       setCarrito(
         (data.items || []).map((item) => ({
           id: item.product.id,
           nombre: item.product.nombre || item.product.name,
           descripcion: item.product.descripcion || item.product.description,
           precio: item.product.precio || item.product.price,
-          imagen: item.product.image_url || item.product.imagen || item.product.image,
+          images: item.product.images && item.product.images.length > 0
+            ? item.product.images.map(img => {
+                const imgUrl = typeof img === 'string' ? img : img.image;
+                const absUrl = absolutizeImageUrl(imgUrl);
+                return absUrl ? { image: absUrl } : null;
+              }).filter(Boolean)
+            : ((item.product.image_url || item.product.imagen || item.product.image)
+                ? [{ image: absolutizeImageUrl(item.product.image_url || item.product.imagen || item.product.image) }]
+                : []),
           cantidad: item.quantity,
           item_id: item.id,
         }))
       );
+      setError(null);
     } catch (e) {
       if (e.message.includes('401')) {
-        setAlertaGlobal({ tipo: 'info', mensaje: 'Sesión no iniciada. Usando carrito local.' });
+        setAlertaGlobal({ tipo: 'info', mensaje: 'Sesión expirada. Por favor, inicia sesión de nuevo.' });
         setCarrito(getLocalCart());
+        localStorage.removeItem("token");
       } else {
         setError(e.message);
       }
+    } finally {
+      setLoading(false);
     }
+  }
+
+  // Utilidad para asegurar URLs absolutas de imagen
+  function absolutizeImageUrl(url) {
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    // Quita primer slash si existe
+    const cleanUrl = url.startsWith('/') ? url.substring(1) : url;
+    // Elimina /api/ si está en API_URL
+    const base = (process.env.REACT_APP_API_URL || 'http://localhost:8000/api/').replace(/\/api\/?$/, '/');
+    return base + cleanUrl;
   }
 
   // Agregar producto al carrito (local si no logueado, backend si logueado)
   async function agregarAlCarrito(producto, cantidad = 1) {
-    if (loading) return; // Evita acción si está cargando
+    if (!producto || !producto.id) {
+      setError('Producto inválido.');
+      setAlertaGlobal({ tipo: 'error', mensaje: 'Ocurrió un error con el producto.' });
+      return;
+    }
+    if (loading) return;
     const token = getToken();
     if (!token) {
       setCarrito((prev) => {
         const idx = prev.findIndex((p) => p.id === producto.id);
-        // Asegura que la imagen absoluta siempre se guarde en el carrito local
-        const imagen = producto.image_url || producto.imagen || producto.image || "";
         let nuevo;
         if (idx >= 0) {
+          // No permitir superar existencias
+          const max = producto.existencias ?? producto.stock ?? 1;
+          const nuevaCantidad = Math.min(nuevo ? nuevo[idx].cantidad + cantidad : prev[idx].cantidad + cantidad, max);
           nuevo = [...prev];
-          nuevo[idx].cantidad += cantidad;
-          // Mantén la imagen absoluta si ya existe, o actualízala si está vacía
-          nuevo[idx].imagen = nuevo[idx].imagen || imagen;
+          nuevo[idx].cantidad = nuevaCantidad;
         } else {
-          nuevo = [...prev, { ...producto, cantidad, imagen }];
+          nuevo = [...prev, { ...producto, cantidad: Math.min(cantidad, producto.existencias ?? producto.stock ?? 1) }];
         }
         setLocalCart(nuevo);
         setAlertaGlobal({ tipo: "exito", mensaje: "Producto agregado al carrito." });
@@ -156,7 +135,7 @@ export function CarritoProvider({ children }) {
       return;
     }
     try {
-      await addToCarrito(producto.id, cantidad, token);
+      await agregarAlCarritoAPI(producto.id, cantidad);
       await recargarCarrito();
       setAlertaGlobal({ tipo: "exito", mensaje: "Producto agregado al carrito." });
     } catch (e) {
@@ -179,36 +158,19 @@ export function CarritoProvider({ children }) {
       return;
     }
     try {
-      await removeFromCarrito(carrito.find((p) => p.id === productoId)?.item_id, token);
-      await recargarCarrito();
-      setAlertaGlobal({ tipo: "info", mensaje: "Producto eliminado del carrito." });
+      const item = carrito.find((p) => p.id === productoId);
+      if (item && item.item_id) {
+        await eliminarDelCarritoAPI(item.item_id);
+        await recargarCarrito();
+        setAlertaGlobal({ tipo: "info", mensaje: "Producto eliminado del carrito." });
+      }
     } catch (e) {
       setError(e.message);
       setAlertaGlobal({ tipo: "error", mensaje: e.message });
     }
   }
 
-  // Vaciar carrito
-  async function vaciarCarrito() {
-    if (loading) return;
-    const token = getToken();
-    if (!token) {
-      setCarrito([]);
-      setLocalCart([]);
-      setAlertaGlobal({ tipo: "info", mensaje: "Carrito vaciado." });
-      return;
-    }
-    try {
-      await Promise.all(carrito.map((prod) => removeFromCarrito(prod.item_id, token)));
-      await recargarCarrito();
-      setAlertaGlobal({ tipo: "info", mensaje: "Carrito vaciado." });
-    } catch (e) {
-      setError(e.message);
-      setAlertaGlobal({ tipo: "error", mensaje: e.message });
-    }
-  }
-
-  // Actualizar cantidad de un producto (opcional)
+  // Actualizar cantidad de un producto
   async function actualizarCantidad(productoId, cantidad) {
     if (loading) return;
     const token = getToken();
@@ -218,10 +180,6 @@ export function CarritoProvider({ children }) {
         if (idx < 0) return prev;
         const nuevo = [...prev];
         nuevo[idx].cantidad = cantidad;
-        // Mantén la imagen absoluta si ya existe
-        if (!nuevo[idx].imagen) {
-          nuevo[idx].imagen = prev[idx].imagen;
-        }
         setLocalCart(nuevo);
         setAlertaGlobal({ tipo: "info", mensaje: "Cantidad actualizada." });
         return nuevo;
@@ -230,17 +188,55 @@ export function CarritoProvider({ children }) {
       return;
     }
     try {
-      await updateCarritoItem(carrito.find((p) => p.id === productoId)?.item_id, cantidad, token);
-      await recargarCarrito();
-      setAlertaGlobal({ tipo: "info", mensaje: "Cantidad actualizada." });
+      const item = carrito.find((p) => p.id === productoId);
+      if (item && item.item_id) {
+        await actualizarCantidadCarritoAPI(item.item_id, cantidad);
+        await recargarCarrito();
+        setAlertaGlobal({ tipo: "info", mensaje: "Cantidad actualizada." });
+      }
     } catch (e) {
       setError(e.message);
       setAlertaGlobal({ tipo: "error", mensaje: e.message });
     }
   }
 
+  // Vaciar carrito local
+  async function vaciarCarrito() {
+    const token = getToken();
+    if (token) {
+      try {
+        await fetch((process.env.REACT_APP_API_URL || "http://localhost:8000/api/") + "cart/clear/", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setCarrito([]);
+        setAlertaGlobal({ tipo: "info", mensaje: "Carrito vaciado." });
+        setLocalCart([]);
+        return;
+      } catch (e) {
+        setAlertaGlobal({ tipo: "error", mensaje: "No se pudo vaciar el carrito en el servidor." });
+      }
+    }
+    setCarrito([]);
+    setLocalCart([]);
+    setAlertaGlobal({ tipo: "info", mensaje: "Carrito vaciado." });
+  }
+
   return (
-    <CarritoContext.Provider value={{ carrito, agregarAlCarrito, eliminarDelCarrito, vaciarCarrito, actualizarCantidad, loading, error, alertaGlobal, setAlertaGlobal }}>
+    <CarritoContext.Provider
+      value={{
+        carrito,
+        agregarAlCarrito,
+        eliminarDelCarrito,
+        actualizarCantidad,
+        vaciarCarrito,
+        loading,
+        error,
+        alertaGlobal,
+        setAlertaGlobal,
+        recargarCarrito,
+      }}
+    >
       {children}
     </CarritoContext.Provider>
   );

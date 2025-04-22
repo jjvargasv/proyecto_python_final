@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Alerta from "../components/Alerta";
+import { useCarrito } from "../contexts/CarritoContext";
 
 function safeSetItem(key, value) {
   try {
@@ -26,6 +27,7 @@ export default function Registro() {
   const [exito, setExito] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { recargarCarrito } = useCarrito();
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -43,6 +45,20 @@ export default function Registro() {
         body: JSON.stringify(form),
       });
       if (!res.ok) throw new Error("Error al registrar. El usuario puede existir o los datos no son válidos.");
+      // Login automático tras registro exitoso
+      const loginRes = await fetch("http://localhost:8000/api/users/token_obtain_pair/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: form.username, password: form.password }),
+      });
+      if (!loginRes.ok) throw new Error("Registro exitoso, pero error al iniciar sesión automáticamente.");
+      const loginData = await loginRes.json();
+      if (safeSetItem("token", loginData.access)) {
+        recargarCarrito(); // Sincroniza carrito tras login
+        setExito("¡Registro y login exitosos! Redirigiendo...");
+        setTimeout(() => navigate("/perfil"), 1500);
+        return;
+      }
       setExito("¡Registro exitoso! Ahora puedes iniciar sesión.");
       setTimeout(() => navigate("/login"), 1500);
     } catch (err) {

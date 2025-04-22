@@ -1,13 +1,21 @@
 import React, { useEffect, useState } from "react";
 
+// Página de administración para gestionar los mensajes de contacto recibidos
 export default function AdminMensajesContacto() {
+  // Estado para almacenar los mensajes
   const [mensajes, setMensajes] = useState([]);
+  // Estado para controlar la carga de datos
   const [loading, setLoading] = useState(true);
+  // Estado para mostrar mensajes de error
   const [error, setError] = useState(null);
+  // Estado para el texto de búsqueda
   const [busqueda, setBusqueda] = useState("");
+  // Estado para la página actual de la paginación
   const [pagina, setPagina] = useState(1);
+  // Estado para el total de páginas disponibles
   const [totalPaginas, setTotalPaginas] = useState(1);
 
+  // Efecto para cargar los mensajes al montar el componente o cambiar página/búsqueda
   useEffect(() => {
     const token = localStorage.getItem("token");
     let url = `http://localhost:8000/api/contacto/mensajes/?page=${pagina}`;
@@ -27,17 +35,21 @@ export default function AdminMensajesContacto() {
       .finally(() => setLoading(false));
   }, [pagina, busqueda]);
 
+  // Función para manejar la búsqueda
   function handleBuscar(e) {
     setBusqueda(e.target.value);
     setPagina(1);
   }
 
+  // Función para cambiar de página en la paginación
   function handlePagina(nueva) {
     setPagina(nueva);
   }
 
+  // Renderizado condicional mientras se cargan los datos
   if (loading) return <div className="text-white text-center py-8">Cargando mensajes...</div>;
 
+  // Renderizado principal de la página de mensajes de contacto
   return (
     <section className="container mx-auto py-8 px-4 min-h-[60vh]">
       <h2 className="text-3xl font-bold text-white mb-6">Mensajes de Contacto</h2>
@@ -59,22 +71,22 @@ export default function AdminMensajesContacto() {
             <div className="text-gray-300">Email: {msg.email}</div>
             <div className="text-gray-400 text-xs">Fecha: {new Date(msg.fecha).toLocaleString()}</div>
             <div className="text-white mt-2">{msg.mensaje}</div>
+            {/* Aquí se podrían agregar acciones como responder o eliminar mensaje */}
           </div>
         ))}
       </div>
-      {totalPaginas > 1 && (
-        <div className="flex gap-2 mt-6 justify-center">
-          {Array.from({ length: totalPaginas }, (_, i) => (
-            <button
-              key={i}
-              className={`px-3 py-1 rounded ${pagina === i + 1 ? "bg-purple-700 text-white" : "bg-gray-700 text-gray-200"}`}
-              onClick={() => handlePagina(i + 1)}
-            >
-              {i + 1}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Paginación */}
+      <div className="flex justify-center gap-2 mt-6">
+        {Array.from({ length: totalPaginas }, (_, i) => (
+          <button
+            key={i + 1}
+            className={`px-3 py-1 rounded ${pagina === i + 1 ? "bg-purple-700 text-white" : "bg-white/30 text-purple-700"}`}
+            onClick={() => handlePagina(i + 1)}
+          >
+            {i + 1}
+          </button>
+        ))}
+      </div>
     </section>
   );
 }

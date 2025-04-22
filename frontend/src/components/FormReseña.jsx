@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-export default function FormReseña({ onReseñaCreada }) {
+export default function FormReseña({ onReseñaCreada, productId }) {
   const [texto, setTexto] = useState("");
   const [calificacion, setCalificacion] = useState(5);
   const [mensaje, setMensaje] = useState("");
@@ -15,8 +15,12 @@ export default function FormReseña({ onReseñaCreada }) {
       setMensaje("Debes iniciar sesión para dejar una reseña.");
       return;
     }
+    if (!productId) {
+      setMensaje("Error: producto no válido.");
+      return;
+    }
     try {
-      const res = await fetch("http://localhost:8000/api/reseñas/", {
+      const res = await fetch(`http://localhost:8000/api/products/${productId}/reviews/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

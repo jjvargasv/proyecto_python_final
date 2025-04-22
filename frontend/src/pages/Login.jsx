@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { useCarrito } from "../contexts/CarritoContext";
+import { agregarAlCarritoAPI } from "../utils/api";
 
 function safeSetToken(token) {
   try {
@@ -13,11 +15,28 @@ function safeSetToken(token) {
   }
 }
 
+// Sincroniza productos del carrito local al backend tras login
+async function migrarCarritoLocalAlBackend() {
+  try {
+    const localCart = JSON.parse(localStorage.getItem("carrito")) || [];
+    if (localCart.length === 0) return;
+    // Agrega cada producto al backend
+    for (const prod of localCart) {
+      await agregarAlCarritoAPI(prod.id, prod.cantidad || 1);
+    }
+    localStorage.removeItem("carrito"); // Limpia carrito local
+  } catch (err) {
+    // Si hay error, no detiene el login
+    // Puedes mostrar un mensaje si quieres
+  }
+}
+
 export default function Login() {
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { recargarCarrito } = useCarrito();
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -28,7 +47,7 @@ export default function Login() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("http://localhost:8000/api/users/login/", {
+      const res = await fetch("http://localhost:8000/api/users/token_obtain_pair/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -36,6 +55,8 @@ export default function Login() {
       if (!res.ok) throw new Error("Credenciales inválidas");
       const data = await res.json();
       if (safeSetToken(data.access)) {
+        await migrarCarritoLocalAlBackend(); // <-- MIGRA CARRITO LOCAL TRAS LOGIN
+        await recargarCarrito(); // Fuerza recarga del carrito tras login
         // Redirigir al perfil tras login
         navigate("/perfil");
       }
@@ -73,6 +94,9 @@ export default function Login() {
           {loading ? "Ingresando..." : "Ingresar"}
         </button>
         <button type="button" className="text-purple-300 underline mt-2" onClick={() => navigate("/registro")}>¿No tienes cuenta? Regístrate</button>
+        <Link to="/recuperar-clave" className="text-purple-400 hover:underline text-sm block mt-4 text-center">
+          ¿Olvidaste tu contraseña?
+        </Link>
       </form>
     </section>
   );

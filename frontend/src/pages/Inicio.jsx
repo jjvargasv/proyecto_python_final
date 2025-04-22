@@ -1,20 +1,32 @@
+// Importa las librerías necesarias para el funcionamiento de la página
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { fetchFeaturedProducts } from "../utils/api";
-import ReseñasInicio from "../components/ReseñasInicio";
-import FormReseña from "../components/FormReseña";
+import CardInicio from "../components/CardInicio";
+import FavoritosDestacados from "../components/FavoritosDestacados";
 
-function isLoggedIn() {
-  return Boolean(localStorage.getItem("token"));
-}
-
+// Página principal de inicio de la tienda
 export default function Inicio() {
+  // Estado para almacenar el historial de navegación
+  const navigate = useNavigate();
+  
+  // Estado para almacenar los productos destacados
   const [featured, setFeatured] = useState([]);
+  // Estado para manejar la carga de los productos destacados
   const [loading, setLoading] = useState(true);
+  // Estado para manejar errores en la carga de los productos destacados
   const [error, setError] = useState(null);
-  const [showForm, setShowForm] = useState(false);
+  
+  // Estado para almacenar los productos más vistos
+  const [mostViewed, setMostViewed] = useState([]);
+  // Estado para manejar la carga de los productos más vistos
+  const [loadingMostViewed, setLoadingMostViewed] = useState(true);
+  // Estado para manejar errores en la carga de los productos más vistos
+  const [errorMostViewed, setErrorMostViewed] = useState(null);
 
+  // Efecto para cargar los productos destacados y más vistos al montar el componente
   useEffect(() => {
+    // Llama a la función que maneja la carga de los productos destacados
     fetchFeaturedProducts()
       .then(data => {
         setFeatured(data);
@@ -24,11 +36,26 @@ export default function Inicio() {
         setError("No se pudieron cargar los productos destacados");
         setLoading(false);
       });
-    setShowForm(isLoggedIn());
+    
+    // Llama a la función que maneja la carga de los productos más vistos
+    fetch('http://localhost:8000/api/products/?ordering=-views_count')
+      .then(res => res.json())
+      .then(data => {
+        // Ordena de mayor a menor vistas (por si el backend no lo hace)
+        const ordenados = [...data].sort((a, b) => (b.views_count ?? 0) - (a.views_count ?? 0));
+        setMostViewed(ordenados);
+        setLoadingMostViewed(false);
+      })
+      .catch(() => { setErrorMostViewed('No se pudieron cargar los más vistos'); setLoadingMostViewed(false); });
   }, []);
 
+  // Limita a 8 productos más vistos y destacados
+  const mostViewedLimited = mostViewed.slice(0, 8);
+  const featuredLimited = featured.slice(0, 8);
+
+  // Renderizado de la página de inicio
   return (
-    <section className="min-h-[60vh] flex flex-col items-center justify-center bg-gradient-to-br from-purple-900 via-black to-gray-900 text-white py-12">
+    <section className="min-h-[60vh] flex flex-col items-center justify-center bg-gradient-to-br from-[#211044] via-[#3b1d63] to-[#1e1550] text-white py-12 animate-fadein">
       {/* Hero principal */}
       <div className="text-center mb-10">
         <h1 className="text-4xl md:text-6xl font-bold mb-4 drop-shadow-lg">Bienvenido a ALFAREROJT</h1>
@@ -37,64 +64,46 @@ export default function Inicio() {
           <button className="px-8 py-3 bg-purple-700 hover:bg-purple-800 text-white rounded-full shadow-lg text-lg transition">Explorar productos</button>
         </Link>
       </div>
-      {/* Productos destacados reales */}
+      {/* Favoritos destacados (solo si hay) */}
+      <FavoritosDestacados />
+      {/* Productos más vistos */}
       <div className="w-full max-w-5xl mb-8">
-        <h2 className="text-2xl font-bold mb-4">Productos destacados</h2>
+        <h2 className="text-3xl font-extrabold mb-6 text-center tracking-wide uppercase">Productos más vistos</h2>
+        {loadingMostViewed ? (
+          <div className="flex justify-center items-center min-h-[120px]">
+            <div className="loader ease-linear rounded-full border-8 border-t-8 border-purple-200 h-12 w-12"></div>
+          </div>
+        ) : errorMostViewed ? (
+          <div className="text-red-400 text-center py-8">{errorMostViewed}</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {mostViewedLimited.map(producto => (
+              <CardInicio key={producto.id} producto={producto} onClick={() => navigate(`/productos/${producto.id}`)} />
+            ))}
+          </div>
+        )}
+      </div>
+      {/* Productos destacados */}
+      <div className="w-full max-w-5xl">
+        <h2 className="text-2xl font-bold text-white mb-2 mt-8">Productos destacados</h2>
         {loading ? (
-          <div className="text-center py-8">Cargando...</div>
+          <div className="flex justify-center items-center min-h-[120px]">
+            <div className="loader ease-linear rounded-full border-8 border-t-8 border-purple-200 h-12 w-12"></div>
+          </div>
         ) : error ? (
           <div className="text-red-400 text-center py-8">{error}</div>
-        ) : featured.length === 0 ? (
+        ) : featuredLimited.length === 0 ? (
           <div className="text-center py-8">No hay productos destacados.</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {featured.map(producto => (
-              <div key={producto.id} className="bg-white/10 rounded-lg shadow-lg p-6 flex flex-col items-center">
-                {producto.image ? (
-                  <img src={producto.image} alt={producto.name} className="w-32 h-32 object-cover rounded-full mb-4" />
-                ) : (
-                  <div className="w-32 h-32 bg-gradient-to-tr from-purple-400 to-pink-300 rounded-full mb-4"></div>
-                )}
-                <h3 className="text-xl font-semibold mb-2">{producto.name}</h3>
-                <p className="text-lg text-purple-200 mb-4">${producto.price}</p>
-                <Link to={`/productos/${producto.id}`}><button className="px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded transition">Ver más</button></Link>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            {featuredLimited.map((prod, idx) => (
+              <div key={prod.id} className="animate-fadein" style={{ animationDelay: `${idx * 60}ms` }}>
+                <CardInicio producto={prod} onClick={() => navigate(`/productos/${prod.id}`)} />
               </div>
             ))}
           </div>
         )}
       </div>
-      {/* Galería/Video */}
-      <div className="w-full max-w-4xl mb-8">
-        <iframe className="w-full aspect-video rounded-lg shadow-lg" src="https://www.youtube.com/embed/1QYpQ9VqfY8" title="Anime Video" allowFullScreen></iframe>
-      </div>
-      {/* Beneficios */}
-      <div className="flex flex-wrap justify-center gap-8 mb-8">
-        <div className="flex flex-col items-center">
-          <span className="text-4xl mb-2">🚚</span>
-          <p>Envío gratis</p>
-        </div>
-        <div className="flex flex-col items-center">
-          <span className="text-4xl mb-2">🔒</span>
-          <p>Pago seguro</p>
-        </div>
-        <div className="flex flex-col items-center">
-          <span className="text-4xl mb-2">🤝</span>
-          <p>Atención personalizada</p>
-        </div>
-      </div>
-      {/* Suscripción */}
-      <form className="flex flex-col md:flex-row items-center gap-2 bg-white/10 p-4 rounded-lg mb-8 w-full max-w-xl mx-auto">
-        <input type="email" placeholder="Tu email" className="flex-1 px-4 py-2 rounded bg-gray-900 text-white placeholder-gray-400 focus:outline-none" />
-        <button type="submit" className="px-6 py-2 rounded bg-purple-700 text-white hover:bg-purple-800 transition">Suscribirse al boletín</button>
-      </form>
-      {/* CTA secundarios */}
-      <div className="flex flex-wrap gap-4 justify-center">
-        <Link to="/productos"><button className="px-4 py-2 bg-purple-800 text-white rounded">Ver catálogo completo</button></Link>
-        <Link to="/contacto"><button className="px-4 py-2 bg-white text-purple-800 border border-purple-800 rounded">Contáctanos</button></Link>
-        <a href="https://instagram.com" target="_blank" rel="noopener noreferrer"><button className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded">Síguenos en redes</button></a>
-      </div>
-      <ReseñasInicio />
-      {showForm && <FormReseña />}
     </section>
   );
 }

@@ -4,3 +4,4 @@ djangorestframework-simplejwt
 psycopg2-binary
 Pillow
 drf-yasg
+reportlab>=4.0.0

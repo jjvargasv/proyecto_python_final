@@ -28,14 +28,14 @@ export default function Checkout() {
     setSuccess(null);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:8000/api/ordenes/", {
+      const res = await fetch("http://localhost:8000/api/orders/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify({
-          items: carrito.map((item) => ({
+          items_data: carrito.map((item) => ({
             producto: item.id,
             cantidad: item.cantidad || item.qty || 1,
           })),
@@ -62,7 +62,15 @@ export default function Checkout() {
           {carrito.map((item) => (
             <li key={item.id} className="flex items-center justify-between py-4">
               <div className="flex items-center gap-4">
-                <img src={item.imagen || item.image} alt={item.nombre || item.name} className="w-12 h-12 object-cover rounded" />
+                <img
+                  src={
+                    item.images && item.images.length > 0
+                      ? item.images[0].image
+                      : (item.imagen || item.image || "https://via.placeholder.com/48")
+                  }
+                  alt={item.nombre || item.name}
+                  className="w-12 h-12 object-cover rounded"
+                />
                 <div>
                   <div className="font-semibold text-white">{item.nombre || item.name}</div>
                   <div className="text-gray-400 text-sm">Cantidad: {item.cantidad || item.qty || 1}</div>

@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from "react";
 
+// Página de administración para gestionar imágenes de productos
 export default function AdminImagenes() {
+  // Estado para almacenar todas las imágenes
   const [imagenes, setImagenes] = useState([]);
+  // Estado para controlar la carga de datos
   const [loading, setLoading] = useState(true);
+  // Estado para mostrar mensajes de error
   const [error, setError] = useState(null);
 
+  // Efecto para cargar las imágenes al montar el componente
   useEffect(() => {
     fetch("http://localhost:8000/api/products/")
       .then((res) => res.json())
@@ -17,6 +22,7 @@ export default function AdminImagenes() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Función para eliminar una imagen específica
   async function handleEliminarImagen(id) {
     if (!window.confirm("¿Eliminar esta imagen?")) return;
     try {
@@ -32,8 +38,10 @@ export default function AdminImagenes() {
     }
   }
 
+  // Renderizado condicional mientras se cargan los datos
   if (loading) return <div className="text-white text-center py-8">Cargando...</div>;
 
+  // Renderizado principal de la página de administración de imágenes
   return (
     <section className="container mx-auto py-8 px-4 min-h-[60vh]">
       <h2 className="text-3xl font-bold text-white mb-6">Gestión de Imágenes</h2>

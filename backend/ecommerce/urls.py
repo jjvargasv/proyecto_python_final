@@ -38,9 +38,11 @@ urlpatterns = [
     path('api/', include('orders.urls')),
     path('api/users/', include('users.urls')),
     path('api/cart/', include('cart.urls')),
+    path('api/favoritos/', include('users.urls_favoritos')),
+    path('api/favorites/', include('users.urls_favoritos')),
     path('api/contacto/', include('contacto.urls')),
     path('api/boletin/', include('boletin.urls')),
-    # path('api/reseñas/', include('reseñas.urls')),
+    path('api/reseñas/', include('reseñas.urls')),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

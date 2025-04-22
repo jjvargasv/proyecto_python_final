@@ -23,7 +23,12 @@ import Acerca from "./pages/Acerca";
 import PoliticaPrivacidad from "./pages/PoliticaPrivacidad";
 import PreguntasFrecuentes from "./pages/PreguntasFrecuentes";
 import TerminosCondiciones from "./pages/TerminosCondiciones";
+import RecuperarClave from "./pages/RecuperarClave";
+import Favoritos from "./pages/Favoritos";
 import { CarritoProvider } from "./contexts/CarritoContext";
+import { AlertaGlobalProvider } from "./contexts/AlertaGlobalContext";
+import Alerta from "./components/Alerta";
+import { useAlertaGlobal } from "./contexts/AlertaGlobalContext";
 
 // Protege rutas solo para admin
 function RequireAdmin({ children }) {
@@ -42,41 +47,56 @@ function RequireAdmin({ children }) {
   return children;
 }
 
+function AlertaGlobal() {
+  const { alerta, cerrarAlerta } = useAlertaGlobal();
+  if (!alerta) return null;
+  return (
+    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md">
+      <Alerta tipo={alerta.tipo} mensaje={alerta.mensaje} onClose={cerrarAlerta} />
+    </div>
+  );
+}
+
 export default function App() {
   return (
-    <CarritoProvider>
-      <Router>
-        <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-900 via-purple-950 to-black">
-          <Header />
-          <main className="flex-1">
-            <Routes>
-              <Route path="/" element={<Inicio />} />
-              <Route path="/productos" element={<Productos />} />
-              <Route path="/productos/:id" element={<DetalleProducto />} />
-              <Route path="/categorias" element={<Categorias />} />
-              <Route path="/contacto" element={<Contacto />} />
-              <Route path="/carrito" element={<Carrito />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/registro" element={<Registro />} />
-              <Route path="/perfil" element={<Perfil />} />
-              <Route path="/ordenes" element={<Ordenes />} />
-              <Route path="/acerca" element={<Acerca />} />
-              <Route path="/privacidad" element={<PoliticaPrivacidad />} />
-              <Route path="/faq" element={<PreguntasFrecuentes />} />
-              <Route path="/terminos" element={<TerminosCondiciones />} />
-              <Route path="/admin/productos" element={<RequireAdmin><AdminProductos /></RequireAdmin>} />
-              <Route path="/admin/productos/nuevo" element={<RequireAdmin><AdminProductoForm modo="crear" /></RequireAdmin>} />
-              <Route path="/admin/productos/editar/:id" element={<RequireAdmin><AdminProductoForm modo="editar" /></RequireAdmin>} />
-              <Route path="/admin/productos/eliminar/:id" element={<RequireAdmin><AdminProductoEliminar /></RequireAdmin>} />
-              <Route path="/admin/categorias" element={<RequireAdmin><AdminCategorias /></RequireAdmin>} />
-              <Route path="/admin/imagenes" element={<RequireAdmin><AdminImagenes /></RequireAdmin>} />
-              <Route path="/admin/usuarios" element={<RequireAdmin><AdminUsuarios /></RequireAdmin>} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
-      </Router>
-    </CarritoProvider>
+    <AlertaGlobalProvider>
+      <CarritoProvider>
+        <Router>
+          <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-900 via-purple-950 to-black">
+            <Header />
+            <AlertaGlobal />
+            <main className="flex-1">
+              <Routes>
+                <Route path="/" element={<Inicio />} />
+                <Route path="/productos" element={<Productos />} />
+                <Route path="/productos/:id" element={<DetalleProducto />} />
+                <Route path="/categorias" element={<Categorias />} />
+                <Route path="/carrito" element={<Carrito />} />
+                <Route path="/contacto" element={<Contacto />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/registro" element={<Registro />} />
+                <Route path="/perfil" element={<Perfil />} />
+                <Route path="/favoritos" element={<Favoritos />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/ordenes" element={<Ordenes />} />
+                <Route path="/admin/productos" element={<RequireAdmin><AdminProductos /></RequireAdmin>} />
+                <Route path="/admin/productos/nuevo" element={<RequireAdmin><AdminProductoForm modo="crear" /></RequireAdmin>} />
+                <Route path="/admin/productos/editar/:id" element={<RequireAdmin><AdminProductoForm modo="editar" /></RequireAdmin>} />
+                <Route path="/admin/productos/eliminar/:id" element={<RequireAdmin><AdminProductoEliminar /></RequireAdmin>} />
+                <Route path="/admin/categorias" element={<RequireAdmin><AdminCategorias /></RequireAdmin>} />
+                <Route path="/admin/imagenes" element={<RequireAdmin><AdminImagenes /></RequireAdmin>} />
+                <Route path="/admin/usuarios" element={<RequireAdmin><AdminUsuarios /></RequireAdmin>} />
+                <Route path="/acerca" element={<Acerca />} />
+                <Route path="/privacidad" element={<PoliticaPrivacidad />} />
+                <Route path="/faq" element={<PreguntasFrecuentes />} />
+                <Route path="/terminos" element={<TerminosCondiciones />} />
+                <Route path="/recuperar-clave" element={<RecuperarClave />} />
+              </Routes>
+            </main>
+            <Footer />
+          </div>
+        </Router>
+      </CarritoProvider>
+    </AlertaGlobalProvider>
   );
 }
